@@ -1,0 +1,29 @@
+let 
+    function =  (fileLink as text, token as text)=>
+    let
+        headers=[#"Content-Type" = "application/json", #"Authorization" = "OAuth "&token, #"Accept" = "application/json"],
+        querydata = [#"path" = Text.Replace(fileLink, "\","/"), limit="1000000"],
+        web = Web.Contents("https://cloud-api.yandex.net/", [RelativePath="v1/disk/resources", Headers = headers, ManualStatusHandling = {404, 400}, Query =querydata]),
+        result = Json.Document(web),
+        link = result[_embedded], 
+        items = link[items],
+        toTable = Table.FromList(items, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+        expandColumn = Table.ExpandRecordColumn(toTable, "Column1", {"created", "modified", "size","path"}, {"created", "modified","size", "path"}),
+        pathCorrect = Table.ReplaceValue(expandColumn,"disk:/","",Replacer.ReplaceText,{"path"}),
+        chType = Table.TransformColumnTypes(pathCorrect,{{"created", type datetime}, {"modified", type datetime}, {"size", type number}})
+    in
+        chType,
+    result = Value.ReplaceType(function, FuncType),
+    FuncType = type function (fileLink as (type text meta [
+            Documentation.FieldCaption = "Путь к папке после C:\YandexDisk\:",
+            Documentation.SampleValues = {"Мои файлы\Лучшие файлы"}]),   
+    token as (type text meta [
+            Documentation.FieldCaption = "Ваш токен (ссылка на получение ниже):",
+            Documentation.SampleValues = {"y0_AgAAAMfGA...rBX0d-ZpA5O"}]))
+        as table meta [
+            Documentation.Name = "Получаем список сущностей из папки Яндекс.Диска",
+            Documentation.LongDescription =    "",
+            Documentation.Examples = {[ Description = "Ссылка на получение токена:",
+                Code = "https://oauth.yandex.ru/authorize?response_type=token&client_id=a363cf6712db45978a012820777fc06a",
+                Result = "По ссылке вы получите токен" ]}]
+in result

@@ -1,0 +1,44 @@
+let 
+function=
+
+(fileLink as text, token as text )=>
+let
+headers=[#"Content-Type" = "application/json", #"Authorization" = "OAuth "&token, #"Accept" = "application/json"],
+querydata = [#"path" = Text.Replace(fileLink, "\","/")],
+web = Web.Contents("https://cloud-api.yandex.net/", [RelativePath="v1/disk/resources/download", Headers = headers, ManualStatusHandling = {404, 400}, Query =querydata]),
+result = Json.Document(web),
+link = result[href], 
+relative = Text.Replace(result[href], "https://downloader.disk.yandex.ru/",""),
+href = Web.Contents("https://downloader.disk.yandex.ru/", [RelativePath = relative, Headers = headers, ManualStatusHandling = {404, 400}])
+in href,
+
+result = Value.ReplaceType(function, FuncType),
+
+FuncType = type function (
+
+fileLink as (type text meta [
+        Documentation.FieldCaption = "Путь к файлу после C:\YandexDisk\:",
+        Documentation.SampleValues = {"Мои файлы\файлик.xxx"}
+    ]),   
+
+token as (type text meta [
+        Documentation.FieldCaption = "Ваш токен (ссылка на получение ниже):",
+        Documentation.SampleValues = {"y0_AgAAAMfGA...rBX0d-ZpA5O"}
+    ])
+         )
+    as table meta [
+        Documentation.Name = "Получаем файл с Яндекс.Диска",
+        Documentation.LongDescription =    "",
+    
+    Documentation.Examples = {
+                [
+            Description = "Ссылка на получение токена:",
+            Code = "https://oauth.yandex.ru/authorize?response_type=token&client_id=a363cf6712db45978a012820777fc06a",
+            Result = "По ссылке вы получите токен"
+                    ]
+        }
+
+    
+    ]
+
+in result
